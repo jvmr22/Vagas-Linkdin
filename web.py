@@ -25,16 +25,7 @@ WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.ID, 'extended
 chrome.find_element_by_xpath('//*[@id="ember32"]/input').click()
 chrome.find_element_by_xpath('//*[@id="ember32"]/input').send_keys(Keys.ENTER)
 
-WebDriverWait(chrome, 15).until(ec.visibility_of_element_located((By.CLASS_NAME, 'search-filters-bar__all-filters flex-shrink-zero mr3 artdeco-button artdeco-button--muted artdeco-button--2 artdeco-button--tertiary ember-view')))
-chrome.find_element_by_xpath("//div[starts-with(@id, 'phone') and contains(@id, 'option')]").click()
-chrome.find_element_by_class_name('search-filters-bar__all-filters flex-shrink-zero mr3 artdeco-button artdeco-button--muted artdeco-button--2 artdeco-button--tertiary ember-view').click()
-'//*[@id="ember2816"]'
-"//input[contains(@id, '-toDate')]"
-'ember1284'
-'ember241'
-'ember260'
-'ember241'
-'ember734'
-'ember1989'
-'//*[@id="ember2837"]'
-
+WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-filters-bar__all-filters')))
+chrome.find_element_by_class_name("search-filters-bar__all-filters").click()
+WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.XPATH, '//*[@id="ember1017"]/input')))
+chrome.find_element_by_id('ember708').send_keys('Universidade Federal do Ceará')
