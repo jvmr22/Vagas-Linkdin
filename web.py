@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import *
 
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument("--incognito")
@@ -38,6 +39,13 @@ sleep(1)
 chrome.find_element_by_xpath("//input[@placeholder='Adicione uma instituição de ensino']").send_keys(Keys.ARROW_DOWN)
 chrome.find_element_by_xpath("//input[@placeholder='Adicione uma instituição de ensino']").send_keys(Keys.ENTER)
 
+# LOCALIDADES
+city = 'Fortaleza e Região, Brasil'
+chrome.find_element_by_xpath("//input[@placeholder='Adicione uma localidade']").send_keys(city)
+sleep(1)
+chrome.find_element_by_xpath("//input[@placeholder='Adicione uma localidade']").send_keys(Keys.ARROW_DOWN)
+chrome.find_element_by_xpath("//input[@placeholder='Adicione uma localidade']").send_keys(Keys.ENTER)
+
 # SETORES
 # todo colocar um laço for pra varrer todos os filtros. Gerar planilha por filtro?
 setores = ['Tecnologia da informação e serviços', 'Desenvolvimento de programas']  # , 'Software'
@@ -64,21 +72,53 @@ except Exception as e:
 
 WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-results__list')))
 sleep(2)
-people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
-print('### {} pessoas ###'.format(len(people)))
-index_person = 0
+
+try:
+    chrome.find_element_by_class_name('search-paywall__warning-icon')
+    people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
+    print('### {} pessoas ###'.format(len(people)-3))
+    index_person = 3
+except:
+    people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
+    print('### {} pessoas ###'.format(len(people)))
+    index_person = 0
 
 for i in range(0,len(people)):
     WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-result__info')))
     data = people[index_person].find_element_by_class_name('search-result__info').find_element_by_tag_name('a')
-    print('nome: {}'.format(data.text.split('Conexão')[0]))
+    nome = data.text.split('Conexão')[0]
+    # print('nome: {}'.format(data.text.split('Conexão')[0]))
     data.click()
     WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'profile-background-image')))
-    print('Visualização Perfil')
-    sleep(5)
-    chrome.back()
+    print('Visualização Perfil - {} '.format(nome))
 
+    try:
+        chrome.find_element_by_class_name('pv-profile-section__see-less-inline').click()
+        # button = pv-profile-section__see-less-inline pv-profile-section__text-truncate-toggle link
+        # 'pv-experience-section__see-more'
+    except NoSuchElementException:
+        pass
+    chrome.execute_script("window.scrollTo(0,800);")
+    WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'pv-profile-section-pager')))
+    experiences = chrome.find_element_by_id('experience-section').find_elements_by_class_name('pv-entity__position-group-pager')
+    print('{} experiencias de trabalho'.format(len(experiences)))
+
+    for work in experiences:
+        job = work.find_element_by_tag_name('h3')
+        place = work.find_element_by_tag_name('h4').find_elements_by_tag_name('span')[1]
+        print('\t{} - {}'.format(job.text, place.text))
+        print('---------')
+
+
+    chrome.back()
     WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-results__list')))
     people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
     index_person+=1
 
+section_id = 'experience-section' # profissoes
+'pv-profile-section experience-section ember-view'
+
+ # se tiver mais experiencias.
+
+'education-section'
+'pv-profile-section-pager ember-view'
