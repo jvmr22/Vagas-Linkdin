@@ -11,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 profiles = []
 keep_searching = True
 max_page = 2
+flag = 0
 
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument("--incognito")
@@ -142,11 +143,13 @@ for page in range(1, max_page + 1):
                         jobs = work.find_element_by_class_name('pv-entity__position-group').find_elements_by_tag_name(
                             'li')
                         for i in jobs:
+                            flag = 1
                             job = i.find_element_by_tag_name('h3')
                             print('\t{} - {}'.format(job.text.split("\n", )[1], place.text.split("\n", )[1]))
                             print('---------')
-
-            print('\t{} - {}'.format(job.text, place.text))
+            if flag == 0:
+                print('\t{} - {}'.format(job.text, place.text))
+            flag = 0
             profiles.append([name.split("\n", )[0], place.text, job.text])
             print('---------')
 
@@ -183,3 +186,4 @@ writer = pd.ExcelWriter('Vagas.xlsx', engine='xlsxwriter',
                         date_format='DD/MM/YYYY')
 df_profiles = pd.DataFrame(profiles)
 df_profiles.to_excel(writer)
+writer.save()
