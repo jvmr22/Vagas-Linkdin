@@ -1,12 +1,16 @@
-import os
 from time import sleep
 
+import pandas as pd
 from selenium import webdriver
+from selenium.common.exceptions import *
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import *
+
+profiles = []
+keep_searching = True
+max_page = 2
 
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument("--incognito")
@@ -22,7 +26,7 @@ try:
     chrome.find_element_by_xpath('//*[@id="ember32"]/input').send_keys(Keys.ENTER)
 except:
     cod = input('Digite o codigo solicitado: ')
-    #todo colocar o find_element para o a caixa do codigo
+    # todo colocar o find_element para o a caixa do codigo
     pass
 
 WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-filters-bar__all-filters')))
@@ -73,52 +77,109 @@ except Exception as e:
 WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-results__list')))
 sleep(2)
 
-try:
+try:  # When has Linkdin Premium update sugestion
     chrome.find_element_by_class_name('search-paywall__warning-icon')
     people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
-    print('### {} pessoas ###'.format(len(people)-3))
+    print('### {} pessoas ###'.format(len(people) - 3))
     index_person = 3
-except:
+except NoSuchElementException:
     people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
     print('### {} pessoas ###'.format(len(people)))
     index_person = 0
 
-for i in range(0,len(people)):
-    WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-result__info')))
-    data = people[index_person].find_element_by_class_name('search-result__info').find_element_by_tag_name('a')
-    nome = data.text.split('Conexão')[0]
-    # print('nome: {}'.format(data.text.split('Conexão')[0]))
-    data.click()
-    WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'profile-background-image')))
-    print('Visualização Perfil - {} '.format(nome))
+for page in range(1, max_page + 1):
+    print('Pagina atual: {}'.format(page))
 
+    for i in range(0, len(people)):
+        if i >= 4:  # and (i<len(people)-1) : # scroll down page to load others profiles
+            for s in range(i - 3):
+                chrome.execute_script("window.scrollBy(0, 190)")
+                sleep(1)
+
+        WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-result__info')))
+        try:
+            data = people[index_person].find_element_by_class_name('search-result__info').find_element_by_tag_name('a')
+        except:
+            data = people[index_person].find_element_by_class_name('search-results__list').find_element_by_tag_name('a')
+
+        name = data.text.split('Conexão')[0]
+        # print('nome: {}'.format(data.text.split('Conexão')[0]))
+        data.click()
+        WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'profile-background-image')))
+        print('{}º Visualização Perfil - {} '.format(i + 1, name))
+
+        try:  # expand experiences
+            print('Mostrando mais experiencias')
+            chrome.find_element_by_class_name('pv-profile-section__see-more-inline').click()
+            WebDriverWait(chrome, 15).until(
+                ec.visibility_of_element_located((By.CLASS_NAME, 'pv-entity__position-group-pager')))
+        except NoSuchElementException:
+            pass
+
+        chrome.execute_script("window.scrollTo(0,800);")
+        WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'pv-profile-section-pager')))
+        experiences = chrome.find_element_by_id('experience-section').find_elements_by_class_name(
+            'pv-entity__position-group-pager')
+        print('{} experiencias de trabalho'.format(len(experiences)))
+
+        for work in experiences:
+            try:
+                chrome.find_element_by_class_name('pv-recent-activity-detail__header-container')
+                chrome.back()
+                WebDriverWait(chrome, 15).until(
+                    ec.presence_of_element_located((By.CLASS_NAME, 'pv-profile-section-pager')))
+            except:
+                try:
+                    job = work.find_element_by_tag_name('h3')
+                    place = work.find_element_by_class_name('pv-entity__secondary-title')
+                except:
+                    chrome.execute_script("window.scrollBy(0, 190)")
+                    try:
+                        job = work.find_element_by_tag_name('h3')
+                        place = work.find_element_by_class_name('pv-entity__secondary-title')
+                    except:
+                        place = work.find_element_by_tag_name('h3')
+                        jobs = work.find_element_by_class_name('pv-entity__position-group').find_elements_by_tag_name(
+                            'li')
+                        for i in jobs:
+                            job = i.find_element_by_tag_name('h3')
+                            print('\t{} - {}'.format(job.text.split("\n", )[1], place.text.split("\n", )[1]))
+                            print('---------')
+
+            print('\t{} - {}'.format(job.text, place.text))
+            profiles.append([name.split("\n", )[0], place.text, job.text])
+            print('---------')
+
+        chrome.back()
+        WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-results__list')))
+        people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
+        index_person += 1
+
+    chrome.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     try:
-        chrome.find_element_by_class_name('pv-profile-section__see-less-inline').click()
-        # button = pv-profile-section__see-less-inline pv-profile-section__text-truncate-toggle link
-        # 'pv-experience-section__see-more'
+        chrome.find_element_by_class_name('artdeco-pagination__button--next').click()
+        sleep(2)
+        print('\t próxima pagina')
     except NoSuchElementException:
-        pass
-    chrome.execute_script("window.scrollTo(0,800);")
-    WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'pv-profile-section-pager')))
-    experiences = chrome.find_element_by_id('experience-section').find_elements_by_class_name('pv-entity__position-group-pager')
-    print('{} experiencias de trabalho'.format(len(experiences)))
+        # todo achar elemntos e clicar sempre no [2] segundo
+        'artdeco-pagination__button artdeco-pagination__button--next artdeco-button artdeco-button--muted artdeco-button--icon-right artdeco-button--1 artdeco-button--tertiary ember-view'
+    WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-result__info')))
 
-    for work in experiences:
-        job = work.find_element_by_tag_name('h3')
-        place = work.find_element_by_tag_name('h4').find_elements_by_tag_name('span')[1]
-        print('\t{} - {}'.format(job.text, place.text))
-        print('---------')
-
-
-    chrome.back()
-    WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-results__list')))
-    people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
-    index_person+=1
-
-section_id = 'experience-section' # profissoes
-'pv-profile-section experience-section ember-view'
-
- # se tiver mais experiencias.
-
-'education-section'
-'pv-profile-section-pager ember-view'
+    try:  # When has Linkdin Premium update sugestion
+        chrome.find_element_by_class_name('search-paywall__warning-icon')
+        people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
+        print('### {} pessoas ###'.format(len(people) - 3))
+        print('new people')
+        index_person = 3
+    except NoSuchElementException:
+        people = chrome.find_element_by_class_name('search-results__list').find_elements_by_tag_name('li')
+        print('### {} pessoas ###'.format(len(people)))
+        print('new people 1')
+        print(people)
+        index_person = 0
+print(profiles)
+writer = pd.ExcelWriter('Vagas.xlsx', engine='xlsxwriter',
+                        datetime_format='DD/MM/YYYY',
+                        date_format='DD/MM/YYYY')
+df_profiles = pd.DataFrame(profiles)
+df_profiles.to_excel(writer)
