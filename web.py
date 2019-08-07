@@ -25,7 +25,7 @@ try:
     WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.ID, 'extended-nav')))
     chrome.find_element_by_xpath('//*[@id="ember32"]/input').click()
     chrome.find_element_by_xpath('//*[@id="ember32"]/input').send_keys(Keys.ENTER)
-except:
+except NoSuchElementException:
     cod = input('Digite o codigo solicitado: ')
     # todo colocar o find_element para o a caixa do codigo
     pass
@@ -65,7 +65,7 @@ sleep(1)
 chrome.find_element_by_class_name('search-advanced-facets__button--apply').click()
 
 # DIGITAR CARGOS
-jobs = ['full stack', 'backend', 'Analista de sistemas', 'BI', 'Bussines Inteligence']
+jobs = ['python','full stack', 'backend', 'Analista de sistemas', 'BI', 'Bussines Inteligence']
 chrome.find_element_by_xpath('//*[@id="ember32"]/input').click()
 chrome.find_element_by_xpath('//*[@id="ember32"]/input').send_keys(jobs[0])
 chrome.find_element_by_xpath('//*[@id="ember32"]/input').send_keys(Keys.ENTER)
@@ -100,7 +100,7 @@ for page in range(1, max_page + 1):
         WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-result__info')))
         try:
             data = people[index_person].find_element_by_class_name('search-result__info').find_element_by_tag_name('a')
-        except:
+        except NoSuchElementException:
             data = people[index_person].find_element_by_class_name('search-results__list').find_element_by_tag_name('a')
 
         name = data.text.split('Conexão')[0]
@@ -112,10 +112,16 @@ for page in range(1, max_page + 1):
         try:  # expand experiences
             print('Mostrando mais experiencias')
             chrome.find_element_by_class_name('pv-profile-section__see-more-inline').click()
-            WebDriverWait(chrome, 15).until(
+            WebDriverWait(chrome, 10).until(
                 ec.visibility_of_element_located((By.CLASS_NAME, 'pv-entity__position-group-pager')))
         except NoSuchElementException:
             pass
+        except TimeoutException:
+            chrome.find_element_by_class_name('pv-recent-activity-detail__header-container')
+            chrome.back()
+            WebDriverWait(chrome, 15).until(
+                ec.presence_of_element_located((By.CLASS_NAME, 'pv-profile-section-pager')))
+            chrome.execute_script("window.scrollBy(0, 190)")
 
         chrome.execute_script("window.scrollTo(0,800);")
         WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'pv-profile-section-pager')))
@@ -146,12 +152,14 @@ for page in range(1, max_page + 1):
                             flag = 1
                             job = i.find_element_by_tag_name('h3')
                             print('\t{} - {}'.format(job.text.split("\n", )[1], place.text.split("\n", )[1]))
+                            profiles.append(
+                                [name.split("\n", )[0], place.text.split("\n", )[1], job.text.split("\n", )[1]])
                             print('---------')
-            if flag == 0:
+            if flag == 0:  # todo salvar as vagas "repetidas"
                 print('\t{} - {}'.format(job.text, place.text))
+                print('---------')
+                profiles.append([name.split("\n", )[0], place.text, job.text])
             flag = 0
-            profiles.append([name.split("\n", )[0], place.text, job.text])
-            print('---------')
 
         chrome.back()
         WebDriverWait(chrome, 15).until(ec.presence_of_element_located((By.CLASS_NAME, 'search-results__list')))
